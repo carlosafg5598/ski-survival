@@ -1,0 +1,8 @@
+menu.jugar = Jugar
+menu.opciones = Opciones
+menu.salir = Salir
+opciones.volumenMusica = Volumen Música
+opciones.volumenSonido = Volumen Sonido
+opciones.vibracion = Vibración
+opciones.idioma = Idioma
+opciones.guardar = Guardar

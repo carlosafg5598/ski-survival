@@ -1,0 +1,56 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "EsquiVerde.tmx",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "Character_and_objects.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "EsquiVerde.tmx": {
+            "scale": 2,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 92.5,
+                "y": 1536
+            }
+        },
+        "snow_green.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "tilemap_packed.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "last.imagePath": "C:/Users/Carlos/Desktop/juegos-movil-menu/spritesEsqui",
+    "map.height": 100,
+    "map.lastUsedFormat": "tmx",
+    "map.layerDataFormat": "3",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "map.width": 20,
+    "openFiles": [
+        "EsquiVerde.tmx",
+        "Character_and_objects.tsx",
+        "tilemap_packed.tsx",
+        "snow_green.tsx"
+    ],
+    "project": "mapas.tiled-project",
+    "recentFiles": [
+        "snow_green.tsx",
+        "tilemap_packed.tsx",
+        "Character_and_objects.tsx",
+        "EsquiVerde.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}

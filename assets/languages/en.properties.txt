@@ -1,0 +1,8 @@
+menu.jugar = Play
+menu.opciones = Options
+menu.salir = Exit
+opciones.volumenMusica = Music Volume
+opciones.volumenSonido = Sound Volume
+opciones.vibracion = Vibration
+opciones.idioma = Language
+opciones.guardar = Save
