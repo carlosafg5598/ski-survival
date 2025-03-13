@@ -24,7 +24,9 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ScalingViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactListener;
@@ -36,74 +38,87 @@ import java.util.Locale;
 import Sprites.Esquiador;
 
 public class BlueScreen extends InputAdapter implements Screen {
-    private final Main game;
-    private Camera camera;
-    private Viewport viewport;
-    private TmxMapLoader mapLoader;
-    private TiledMap map;
-    private OrthogonalTiledMapRenderer renderer;
+    private final Main game; // Referencia al juego principal para acceder a métodos y manejar pantallas
+    private Camera camera; // Cámara para visualizar el mundo del juego
+    private Viewport viewport; // Vista que ajusta el tamaño de la pantalla
+    private TmxMapLoader mapLoader; // Cargador de mapas Tiled (.tmx)
+    private TiledMap map; // Mapa cargado desde un archivo Tiled
+    private OrthogonalTiledMapRenderer renderer; // Renderizador para dibujar el mapa
 
-    private BitmapFont font;
-    private final float WORLD_WIDTH = Gdx.graphics.getWidth();
-    private final float WORLD_HEIGHT = Gdx.graphics.getHeight();
+    private BitmapFont font; // Fuente para mostrar texto en pantalla (como resultados)
+    private final float WORLD_WIDTH = 500; // Ancho del mundo del juego
+    private final float WORLD_HEIGHT = 800; // Alto del mundo del juego
 
-    // Box2D Variables
-    private World world;
-    private Box2DDebugRenderer b2dr;
+    // Variables para Box2D (manejando la física del juego)
+    private World world; // Mundo físico
+    private Box2DDebugRenderer b2dr; // Renderizador para depuración de Box2D
 
-    private boolean debug = false;
-    // Esquiador y su body
+    private boolean debug = false; // Bandera para activar el modo de depuración de Box2D
+    // Esquiador y su body (objeto físico asociado al esquiador)
     private Esquiador esquiador;
-    private float startX;
-    private float startY;
+    private float startX; // Coordenada X inicial del esquiador
+    private float startY; // Coordenada Y inicial del esquiador
 
     BlueScreen(Main game) {
-        this.game = game;
-        game.reproducirJuego();
-        startX = 150;
-        startY = Gdx.graphics.getHeight()+ 3200;
+        this.game = game; // Asignamos la referencia del juego principal
+        game.reproducirJuego(); // Inicia la música o efectos del juego al cargar esta pantalla
 
-        camera = new OrthographicCamera();
-        viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
-        game.batch = new SpriteBatch();
-        font = new BitmapFont();
+        // Inicialización de la cámara y viewport
+        camera = new OrthographicCamera(); // Usamos una cámara ortográfica (2D)
+        viewport = new ScalingViewport(Scaling.fillY, WORLD_WIDTH, WORLD_HEIGHT, camera); // Ajusta la vista a las dimensiones del mundo
+        game.batch = new SpriteBatch(); // Crea el batch de dibujo para renderizar gráficos
+        font = new BitmapFont(); // Crea la fuente para el texto en pantalla
 
+        // Carga el mapa Tiled
         mapLoader = new TmxMapLoader();
-        map = mapLoader.load("mapas/EsquiAzul.tmx");
+        map = mapLoader.load("mapas/EsquiAzul.tmx"); // Mapa cargado desde un archivo Tiled
+
+        // Calcula las dimensiones del mapa
+        float mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
+        float mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
+
+        // Calcula la posición inicial del esquiador en el mapa (centrado en X, en la parte superior en Y)
+        startX = mapWidth / 2; // Centrado horizontalmente
+        startY = mapHeight - 50; // Colocado cerca de la parte superior del mapa
+
+        // Inicializa el renderizador del mapa
         renderer = new OrthogonalTiledMapRenderer(map);
 
+        // Inicializa la cámara para que esté centrada en el medio del mundo
         camera.position.set(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 0);
-        world = new World(new Vector2(0, -9.8f), true); // Gravedad hacia abajo
-        b2dr = new Box2DDebugRenderer();
 
+        // Crea el mundo físico de Box2D con gravedad hacia abajo
+        world = new World(new Vector2(0, -9.8f), true);
+        b2dr = new Box2DDebugRenderer(); // Renderizador para mostrar las colisiones de Box2D en el modo debug
 
-        // Crear el esquiador
+        // Inicializa el esquiador (jugador) con la física asociada
         esquiador = new Esquiador(world, startX, startY);
 
-        // Crear los objetos de la capa de obstáculos
+        // Crea los obstáculos definidos en el mapa (en el tercer y cuarto capa del mapa)
         createObstacles();
 
-        // Configurar el listener de contacto para detectar colisiones
+        // Configura el listener para detectar colisiones entre el esquiador y otros objetos
         world.setContactListener(new ContactListener() {
             @Override
             public void beginContact(Contact contact) {
-                Object dataA = contact.getFixtureA().getUserData();
-                Object dataB = contact.getFixtureB().getUserData();
+                Object dataA = contact.getFixtureA().getUserData(); // Datos del primer objeto en la colisión
+                Object dataB = contact.getFixtureB().getUserData(); // Datos del segundo objeto en la colisión
 
+                // Si el esquiador toca un obstáculo
                 if ("obstaculo".equals(dataA) || "obstaculo".equals(dataB)) {
-                    if(game.vibrationActive){
-                        Gdx.input.vibrate(250, 100, true);
+                    if(game.vibrationActive){ // Si la vibración está activa
+                        Gdx.input.vibrate(250, 100, true); // Vibra el dispositivo
                     }
-                    guardarResultadoPartida("EsquiAzul", false); // Guardar derrota
-
-                    game.reproducirDerrota();
-
-                    game.setScreen(new GameOverScreen(game, "BlueScreen", "DERROTA"));
-                } else if ("meta".equals(dataA) || "meta".equals(dataB)) {
+                    guardarResultadoPartida("EsquiAzul", false); // Guarda el resultado de la partida (derrota)
+                    game.reproducirDerrota(); // Reproduce el sonido de derrota
+                    game.setScreen(new GameOverScreen(game, "BlueScreen", "DERROTA")); // Cambia a la pantalla de Game Over
+                }
+                // Si el esquiador toca la meta
+                else if ("meta".equals(dataA) || "meta".equals(dataB)) {
                     System.out.println("¡Has llegado a la meta! Has ganado.");
-                    guardarResultadoPartida("EsquiAzul", true);
-                    game.reproducirVictoria();
-                    game.setScreen(new GameOverScreen(game, "BlueScreen", "VICTORIA"));
+                    guardarResultadoPartida("EsquiAzul", true); // Guarda el resultado de la partida (victoria)
+                    game.reproducirVictoria(); // Reproduce el sonido de victoria
+                    game.setScreen(new GameOverScreen(game, "BlueScreen", "VICTORIA")); // Cambia a la pantalla de Game Over
                 }
             }
 
@@ -124,22 +139,25 @@ public class BlueScreen extends InputAdapter implements Screen {
         });
     }
 
-    // Crear obstáculos estáticos (si están definidos en el mapa)
+    // Método para crear los obstáculos definidos en el mapa
     private void createObstacles() {
-        BodyDef bodyDef = new BodyDef();
-        PolygonShape shape = new PolygonShape();
-        FixtureDef fixtureDef = new FixtureDef();
-        Body body;
+        BodyDef bodyDef = new BodyDef(); // Define las propiedades del cuerpo físico
+        PolygonShape shape = new PolygonShape(); // Forma poligonal para los obstáculos
+        FixtureDef fixtureDef = new FixtureDef(); // Define las propiedades del fixture (adjunto al cuerpo físico)
+        Body body; // Cuerpo físico del objeto
+
+        // Itera sobre los objetos en la capa 2 del mapa (obstáculos)
         for (MapObject object : map.getLayers().get(2).getObjects().getByType(RectangleMapObject.class)) {
-            Rectangle rect = ((RectangleMapObject) object).getRectangle();
-            bodyDef.type = BodyDef.BodyType.StaticBody;
-            bodyDef.position.set(rect.getX() + rect.getWidth() / 2, rect.getY() + rect.getHeight() / 2);
-            body = world.createBody(bodyDef);
-            shape.setAsBox(rect.getWidth() / 2, rect.getHeight() / 2);
-            fixtureDef.shape = shape;
-            body.createFixture(fixtureDef).setUserData("obstaculo");
+            Rectangle rect = ((RectangleMapObject) object).getRectangle(); // Extrae la información de la rectángulo del objeto
+            bodyDef.type = BodyDef.BodyType.StaticBody; // Define el cuerpo como estático (no se mueve)
+            bodyDef.position.set(rect.getX() + rect.getWidth() / 2, rect.getY() + rect.getHeight() / 2); // Coloca el cuerpo en el centro del rectángulo
+            body = world.createBody(bodyDef); // Crea el cuerpo en el mundo físico
+            shape.setAsBox(rect.getWidth() / 2, rect.getHeight() / 2); // Define la forma del obstáculo como un rectángulo
+            fixtureDef.shape = shape; // Asocia la forma con el fixture
+            body.createFixture(fixtureDef).setUserData("obstaculo"); // Crea el fixture y asigna un dato de usuario para identificarlo como obstáculo
         }
 
+        // Similar al proceso anterior, pero para la meta (capa 3 del mapa)
         for (MapObject object : map.getLayers().get(3).getObjects().getByType(RectangleMapObject.class)) {
             Rectangle rect = ((RectangleMapObject) object).getRectangle();
             bodyDef.type = BodyDef.BodyType.StaticBody;
@@ -147,35 +165,37 @@ public class BlueScreen extends InputAdapter implements Screen {
             body = world.createBody(bodyDef);
             shape.setAsBox(rect.getWidth() / 2, rect.getHeight() / 2);
             fixtureDef.shape = shape;
-            body.createFixture(fixtureDef).setUserData("meta");
+            body.createFixture(fixtureDef).setUserData("meta"); // Aquí la meta es un tipo de objeto diferente
         }
     }
 
-    // Manejo de la entrada del usuario (mover el esquiador)
+    // Método que maneja la entrada del jugador (movimiento del esquiador)
     public void handleInput(float dt) {
-        float screenWidth = Gdx.graphics.getWidth(); // Ancho de la pantalla
+        float screenWidth = Gdx.graphics.getWidth(); // Obtiene el ancho de la pantalla
 
-        if (Gdx.input.isTouched()) {
-            int screenX = Gdx.input.getX(); // Obtener la posición X del toque
+        if (Gdx.input.isTouched()) { // Si la pantalla es tocada
+            int screenX = Gdx.input.getX(); // Obtiene la coordenada X del toque
 
             // Si el toque está en la mitad derecha de la pantalla
             if (screenX > screenWidth / 2) {
-                esquiador.move(50, esquiador.body.getLinearVelocity().y);  // Movimiento hacia la derecha
+                esquiador.move(50, esquiador.body.getLinearVelocity().y); // Mueve el esquiador a la derecha
             } else {
-                esquiador.move(-50, esquiador.body.getLinearVelocity().y);  // Movimiento hacia la izquierda
+                esquiador.move(-50, esquiador.body.getLinearVelocity().y); // Mueve el esquiador a la izquierda
             }
         }
     }
 
-    // Actualizar la lógica del juego
-    // Actualizar la lógica del juego
+    // Método para actualizar la lógica del juego
     public void update(float dt) {
-        handleInput(dt);
-        world.step(1 / 60f, 6, 2);
+        handleInput(dt); // Maneja la entrada del usuario
+        world.step(1 / 60f, 6, 2); // Actualiza la simulación de Box2D (físicas)
 
-        esquiador.update(dt);
+        esquiador.update(dt); // Actualiza al esquiador (mueve y anima)
 
-        // Obtener las dimensiones del mapa
+        // Aplicar una fuerza hacia abajo (simula gravedad o caída)
+        esquiador.body.applyForceToCenter(0, -100f, true);
+
+        // Obtener las dimensiones del mapa para ajustar la cámara
         float mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
         float mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
 
@@ -187,14 +207,6 @@ public class BlueScreen extends InputAdapter implements Screen {
         float cameraHalfWidth = camera.viewportWidth / 2;
         float cameraHalfHeight = camera.viewportHeight / 2;
 
-//        // Limitar la cámara en el eje X
-//        if (cameraX - cameraHalfWidth < 0) {
-//            cameraX = cameraHalfWidth; // No permite que la cámara se mueva fuera del mapa por la izquierda
-//        } else if (cameraX + cameraHalfWidth > mapWidth) {
-//            cameraX = mapWidth - cameraHalfWidth; // No permite que la cámara se mueva fuera del mapa por la derecha
-//        }
-
-        // Limitar la cámara en el eje Y
         if (cameraY - cameraHalfHeight < 0) {
             cameraY = cameraHalfHeight; // No permite que la cámara se mueva fuera del mapa por abajo
         } else if (cameraY + cameraHalfHeight > mapHeight) {
@@ -203,62 +215,69 @@ public class BlueScreen extends InputAdapter implements Screen {
 
         // Actualizar la posición de la cámara
         camera.position.set(startX, cameraY, 0);
-        camera.update();
+        camera.update(); // Actualiza la cámara con los nuevos valores
 
-        renderer.setView((OrthographicCamera) camera);
+        renderer.setView((OrthographicCamera) camera); // Configura el renderizador con la nueva vista de la cámara
     }
 
+    // Método para renderizar la pantalla
     @Override
     public void render(float delta) {
-        update(delta);
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        renderer.render();
+        update(delta); // Actualiza la lógica del juego
+        Gdx.gl.glClearColor(0, 0, 0, 1); // Establece el color de fondo
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT); // Limpia la pantalla
+
+        renderer.render(); // Renderiza el mapa del juego
+
         if (debug) {
-            b2dr.render(world, camera.combined);
+            b2dr.render(world, camera.combined); // Si está en modo debug, renderiza las colisiones físicas
         }
 
-
+        // Renderiza los gráficos del juego (esquiador)
         game.batch.begin();
-        game.batch.setProjectionMatrix(camera.combined);
-        esquiador.render(game.batch); // Dibujar esquiador animado
+        game.batch.setProjectionMatrix(camera.combined); // Configura la matriz de proyección de la cámara
+        esquiador.render(game.batch); // Renderiza al esquiador
         game.batch.end();
-
     }
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true);
-
+        viewport.update(width, height, true); // Ajusta el tamaño del viewport al cambiar el tamaño de la pantalla
     }
 
     @Override
     public void dispose() {
-        game.batch.dispose();
-        font.dispose();
-        esquiador.dispose();
+        game.batch.dispose(); // Libera los recursos del batch de dibujo
+        font.dispose(); // Libera los recursos de la fuente
+        esquiador.dispose(); // Libera los recursos del esquiador
     }
 
     @Override
     public void show() {
+        // Este método se usa cuando la pantalla se muestra
     }
 
     @Override
     public void hide() {
+        // Este método se usa cuando la pantalla se oculta
     }
 
     @Override
     public void pause() {
+        // Este método se usa cuando la pantalla se pausa
     }
 
     @Override
     public void resume() {
+        // Este método se usa cuando la pantalla se reanuda
     }
-    public void guardarResultadoPartida(String mapa, boolean gano) {
-        String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
-        String resultado = gano ? "Ganó" : "Perdió";
 
-        // Guardar en la base de datos
+    // Método para guardar el resultado de la partida (victoria o derrota)
+    public void guardarResultadoPartida(String mapa, boolean gano) {
+        String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()); // Fecha de la partida
+        String resultado = gano ? "Ganó" : "Perdió"; // Resultado de la partida
+
+        // Guardar en la base de datos (función personalizada en la clase Main)
         ((Main) Gdx.app.getApplicationListener()).getDatabase().insertarPartida(mapa, fecha, resultado);
         System.out.println("Partida guardada: " + mapa + " | " + fecha + " | " + resultado);
     }

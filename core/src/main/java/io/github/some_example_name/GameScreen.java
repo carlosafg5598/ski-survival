@@ -40,67 +40,61 @@ import Sprites.Esquiador;
 
 public class GameScreen extends InputAdapter implements Screen {
 
-    private final Main game;
-    private Camera camera;
-    private Viewport viewport;
-    private TmxMapLoader mapLoader;
-    private TiledMap map;
-    private OrthogonalTiledMapRenderer renderer;
+    private final Main game;  // Referencia a la clase principal
+    private Camera camera;  // Cámara para la visualización
+    private Viewport viewport;  // Vista del juego
+    private TmxMapLoader mapLoader;  // Cargador de mapa
+    private TiledMap map;  // Mapa cargado
+    private OrthogonalTiledMapRenderer renderer;  // Renderizador del mapa
 
-    private BitmapFont font;
-    private final float WORLD_WIDTH = 500;
-    private final float WORLD_HEIGHT = 800;
+    private BitmapFont font;  // Fuente para mostrar texto
+    private final float WORLD_WIDTH = 500;  // Ancho del mundo
+    private final float WORLD_HEIGHT = 800;  // Alto del mundo
 
-//    private final float WORLD_WIDTH = Gdx.graphics.getWidth();
-//    private final float WORLD_HEIGHT = Gdx.graphics.getHeight();
-    // Box2D Variables
-    private World world;
-    private Box2DDebugRenderer b2dr;
+    // Variables de Box2D
+    private World world;  // Mundo de física de Box2D
+    private Box2DDebugRenderer b2dr;  // Renderer para la depuración de Box2D
 
-    private boolean debug = false;
+    private boolean debug = false;  // Habilitar o deshabilitar la depuración de física
 
-    // Esquiador y su body
-    private Esquiador esquiador;
-    private float startX;
-    private float startY;
+    // Esquiador y su cuerpo en el mundo físico
+    private Esquiador esquiador;  // Esquiador del juego
+    private float startX;  // Posición inicial en X
+    private float startY;  // Posición inicial en Y
 
-
-
-
+    // Constructor del GameScreen
     GameScreen(Main game) {
-        this.game = game;
-        game.reproducirJuego();
-//        startX=150;
-//        startY=Gdx.graphics.getHeight();
+        this.game = game;  // Referencia a la clase principal
+        game.reproducirJuego();  // Inicia la música del juego
 
+        camera = new OrthographicCamera();  // Crea una nueva cámara ortográfica
+        viewport = new ScalingViewport(Scaling.fillY, WORLD_WIDTH, WORLD_HEIGHT, camera);  // Crea un viewport con escalado
+        game.batch = new SpriteBatch();  // Crea un batch para renderizar
+        font = new BitmapFont();  // Crea una fuente para mostrar texto
 
-        camera = new OrthographicCamera();
-        viewport = new ScalingViewport(Scaling.fillY,WORLD_WIDTH, WORLD_HEIGHT, camera);
-        game.batch = new SpriteBatch();
-        font = new BitmapFont();
+        mapLoader = new TmxMapLoader();  // Cargador de mapas
+        map = mapLoader.load("mapas/EsquiVerde.tmx");  // Carga el mapa del archivo TMX
 
-        mapLoader = new TmxMapLoader();
-        map = mapLoader.load("mapas/EsquiVerde.tmx");
         // Obtener el tamaño del mapa en píxeles
         float mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
         float mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
 
-// Centrar en el ancho del mapa
+        // Centrar en el ancho del mapa
         startX = mapWidth / 2;
 
-// Colocar en la parte superior del mapa (o donde quieras que empiece)
-        startY = mapHeight - 100; // Ajusta el 100 si necesitas más precisión
+        // Colocar en la parte superior del mapa (o donde quieras que empiece)
+        startY = mapHeight - 50;  // Ajuste para iniciar un poco abajo
 
-        renderer = new OrthogonalTiledMapRenderer(map);
+        renderer = new OrthogonalTiledMapRenderer(map);  // Crea un renderizador para el mapa
 
-        //camera.position.set(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 0);
-        world = new World(new Vector2(0, -9.8f), true); // Gravedad hacia abajo
-        b2dr = new Box2DDebugRenderer();
+        // Inicialización de la física con gravedad hacia abajo
+        world = new World(new Vector2(0, -9.8f), true);
+        b2dr = new Box2DDebugRenderer();  // Renderer para depuración de Box2D
 
-        // Crear el esquiador
-        esquiador = new Esquiador(world,startX,startY);
+        // Crear el esquiador en el mundo físico
+        esquiador = new Esquiador(world, startX, startY);
 
-        // Crear los objetos de la capa de obstáculos
+        // Crear los obstáculos en el mapa
         createObstacles();
 
         // Configurar el listener de contacto para detectar colisiones
@@ -110,27 +104,25 @@ public class GameScreen extends InputAdapter implements Screen {
                 Object dataA = contact.getFixtureA().getUserData();
                 Object dataB = contact.getFixtureB().getUserData();
 
+                // Detecta si el esquiador colide con un obstáculo o la meta
                 if ("obstaculo".equals(dataA) || "obstaculo".equals(dataB)) {
-                    if(game.vibrationActive){
-                        Gdx.input.vibrate(250, 100, true);
+                    if (game.vibrationActive) {
+                        Gdx.input.vibrate(250, 100, true);  // Vibración si la colisión es con un obstáculo
                     }
-                    guardarResultadoPartida("EsquiVerde", false); // Guardar derrota
+                    guardarResultadoPartida("EsquiVerde", false);  // Guardar derrota
 
-                    game.reproducirDerrota();
-
-
-                    game.setScreen(new GameOverScreen(game, "GameScreen", "DERROTA"));
+                    game.reproducirDerrota();  // Reproducir sonido de derrota
+                    game.setScreen(new GameOverScreen(game, "GameScreen", "DERROTA"));  // Cambiar a pantalla de fin de juego
                 } else if ("meta".equals(dataA) || "meta".equals(dataB)) {
-                    guardarResultadoPartida("EsquiVerde", true); // Guardar victoria
-                    game.reproducirVictoria();
-                    game.setScreen(new GameOverScreen(game, "GameScreen", "VICTORIA"));
+                    guardarResultadoPartida("EsquiVerde", true);  // Guardar victoria
+                    game.reproducirVictoria();  // Reproducir sonido de victoria
+                    game.setScreen(new GameOverScreen(game, "GameScreen", "VICTORIA"));  // Cambiar a pantalla de fin de juego
                 }
             }
 
-
             @Override
             public void endContact(Contact contact) {
-                // Aquí se puede manejar el final de la colisión si es necesario
+                // Lógica para cuando finaliza la colisión
             }
 
             @Override
@@ -158,9 +150,10 @@ public class GameScreen extends InputAdapter implements Screen {
             body = world.createBody(bodyDef);
             shape.setAsBox(rect.getWidth() / 2, rect.getHeight() / 2);
             fixtureDef.shape = shape;
-            body.createFixture(fixtureDef).setUserData("obstaculo");
+            body.createFixture(fixtureDef).setUserData("obstaculo");  // Establecer que es un obstáculo
         }
 
+        // Crear la meta en el mapa
         for (MapObject object : map.getLayers().get(3).getObjects().getByType(RectangleMapObject.class)) {
             Rectangle rect = ((RectangleMapObject) object).getRectangle();
             bodyDef.type = BodyDef.BodyType.StaticBody;
@@ -168,16 +161,16 @@ public class GameScreen extends InputAdapter implements Screen {
             body = world.createBody(bodyDef);
             shape.setAsBox(rect.getWidth() / 2, rect.getHeight() / 2);
             fixtureDef.shape = shape;
-            body.createFixture(fixtureDef).setUserData("meta");
+            body.createFixture(fixtureDef).setUserData("meta");  // Establecer que es la meta
         }
     }
 
     // Manejo de la entrada del usuario (mover el esquiador)
     public void handleInput(float dt) {
-        float screenWidth = Gdx.graphics.getWidth(); // Ancho de la pantalla
+        float screenWidth = Gdx.graphics.getWidth();  // Ancho de la pantalla
 
         if (Gdx.input.isTouched()) {
-            int screenX = Gdx.input.getX(); // Obtener la posición X del toque
+            int screenX = Gdx.input.getX();  // Obtener la posición X del toque
 
             // Si el toque está en la mitad derecha de la pantalla
             if (screenX > screenWidth / 2) {
@@ -190,68 +183,62 @@ public class GameScreen extends InputAdapter implements Screen {
 
     // Actualizar la lógica del juego
     public void update(float dt) {
-        handleInput(dt);
-        world.step(1 / 60f, 6, 2);
+        handleInput(dt);  // Manejar la entrada del usuario
+        world.step(1 / 60f, 6, 2);  // Avanzar en la simulación de física
 
-
-        esquiador.update(dt);
+        esquiador.update(dt);  // Actualizar el esquiador
+        esquiador.body.applyForceToCenter(0, -100f, true);  // Aplicar una fuerza para hacer que el esquiador se mueva
 
         // Obtener las dimensiones del mapa
-
         float mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
 
-        float cameraY = esquiador.body.getPosition().y - 350;
-
-
-        float cameraHalfHeight = camera.viewportHeight / 2;
-
-
+        float cameraY = esquiador.body.getPosition().y - 350;  // Ajustar la posición de la cámara en Y
+        float cameraHalfHeight = camera.viewportHeight / 2;  // Mitad de la altura de la cámara
 
         // Limitar la cámara en el eje Y
         if (cameraY - cameraHalfHeight < 0) {
-            cameraY = cameraHalfHeight; // No permite que la cámara se mueva fuera del mapa por abajo
+            cameraY = cameraHalfHeight;  // No permite que la cámara se mueva fuera del mapa por abajo
         } else if (cameraY + cameraHalfHeight > mapHeight) {
-            cameraY = mapHeight - cameraHalfHeight; // No permite que la cámara se mueva fuera del mapa por arriba
+            cameraY = mapHeight - cameraHalfHeight;  // No permite que la cámara se mueva fuera del mapa por arriba
         }
 
         // Actualizar la posición de la cámara
         camera.position.set(startX, cameraY, 0);
         camera.update();
-
-        renderer.setView((OrthographicCamera) camera);
+        renderer.setView((OrthographicCamera) camera);  // Actualizar el renderizador con la nueva vista
     }
 
-
+    // Renderizar el juego
     @Override
     public void render(float delta) {
-        update(delta);
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        renderer.render();
+        update(delta);  // Actualizar el estado del juego
+        Gdx.gl.glClearColor(0, 0, 0, 1);  // Limpiar la pantalla con color negro
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);  // Limpiar el buffer de pantalla
+
+        renderer.render();  // Renderizar el mapa
+
+        // Dibujar la depuración de la física si está habilitada
         if (debug) {
-            b2dr.render(world, camera.combined);
+            b2dr.render(world, camera.combined);  // Dibujar las entidades físicas
         }
 
-        //b2dr.render(world, camera.combined);
-
+        // Dibujar el esquiador en la pantalla
         game.batch.begin();
-        game.batch.setProjectionMatrix(camera.combined);
-        esquiador.render(game.batch); // Dibujar esquiador animado
+        game.batch.setProjectionMatrix(camera.combined);  // Establecer la cámara como proyección
+        esquiador.render(game.batch);  // Dibujar el esquiador animado
         game.batch.end();
-
     }
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true);
-
+        viewport.update(width, height, true);  // Ajustar el tamaño del viewport cuando cambia el tamaño de la pantalla
     }
 
     @Override
     public void dispose() {
-        game.batch.dispose();
-        font.dispose();
-        esquiador.dispose();
+        game.batch.dispose();  // Liberar recursos de SpriteBatch
+        font.dispose();  // Liberar recursos de la fuente
+        esquiador.dispose();  // Liberar recursos del esquiador
     }
 
     @Override
@@ -270,6 +257,7 @@ public class GameScreen extends InputAdapter implements Screen {
     public void resume() {
     }
 
+    // Guardar el resultado de la partida (victoria o derrota)
     public void guardarResultadoPartida(String mapa, boolean gano) {
         String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
         String resultado = gano ? "Ganó" : "Perdió";
